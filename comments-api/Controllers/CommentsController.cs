@@ -19,22 +19,51 @@ namespace comments_api.Controllers
             _context = context;
         }
 
+        private Comment? FindCommentById(Comment comment, int targetId)
+        {
+            if (comment.Id == targetId)
+                return comment;
+
+            foreach (var reply in comment.Replies)
+            {
+                var foundComment = FindCommentById(reply, targetId);
+                if (foundComment != null)
+                    return foundComment;
+            }
+
+            return null;
+        }
+
         //Create
         [HttpPost]
         public JsonResult Create([FromBody]Comment comment)
         {
-            var itemInDb = _context.Comments.FirstOrDefault(c => c.Id == comment.Id);
+            var itemInDb = FindCommentById(comment, comment.Id);
 
-            if (itemInDb != null) return new JsonResult(BadRequest("Item already exists."));
+            if (itemInDb != null)
+            {
+                return new JsonResult(BadRequest("Item already exists."));
+            }
 
             if (comment.ParentId != null)
-                _context.Comments.FirstOrDefault(c => c.Id == comment.ParentId).Replies.Add(comment);
-
+            {
+                var parentComment = FindCommentById(comment, comment.ParentId.Value);
+                if (parentComment != null)
+                {
+                    parentComment.Replies.Add(comment);
+                }
+                else
+                {
+                    return new JsonResult(BadRequest("Parent comment not found."));
+                }
+            }
             else
+            {
                 _context.Comments.Add(comment);
+            }
 
             _context.SaveChanges();
-            
+
             return new JsonResult(new
             {
                 Data = comment
@@ -62,11 +91,21 @@ namespace comments_api.Controllers
         [HttpGet]
         public JsonResult Get(int id)
         {
-            var result = _context.Comments.FirstOrDefault(c => c.Id == id);
+            var rootComments = _context.Comments
+                .Include(c => c.Replies)
+                .Where(c => c.ParentId == null)
+                .ToList();
 
-            if (result == null) return new JsonResult(NotFound());
+            foreach (var comment in rootComments)
+            {
+                var foundComment = FindCommentById(comment, id);
+                if (foundComment != null)
+                {
+                    return new JsonResult(Ok(foundComment));
+                }
+            }
 
-            return new JsonResult(Ok(result));
+            return new JsonResult(NotFound());
         }
 
         [HttpDelete]
