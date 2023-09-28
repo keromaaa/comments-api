@@ -3,8 +3,8 @@ using comments_api.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Security.Principal;
-using System.Text.Json;
+using System;
+using System.Linq;
 
 namespace comments_api.Controllers
 {
@@ -19,26 +19,25 @@ namespace comments_api.Controllers
             _context = context;
         }
 
-        private Comment? FindCommentById(Comment comment, int targetId)
+        private Comment? FindCommentById(int targetId, List<Comment>? replies = null)
         {
-            if (comment.Id == targetId)
-                return comment;
+            var comments = replies ?? _context.Comments.Include(c => c.Replies).ToList();
 
-            foreach (var reply in comment.Replies)
-            {
-                var foundComment = FindCommentById(reply, targetId);
-                if (foundComment != null)
-                    return foundComment;
-            }
+            foreach (var comment in comments) 
+                if (comment.Id == targetId) return comment;
+
+            foreach (var comment in comments)
+                if (comment.Replies.Count() > 0)
+                    return FindCommentById(targetId, comment.Replies);
 
             return null;
         }
 
         //Create
         [HttpPost]
-        public JsonResult Create([FromBody]Comment comment)
+        public JsonResult Create([FromBody] Comment comment)
         {
-            var itemInDb = FindCommentById(comment, comment.Id);
+            var itemInDb = FindCommentById(comment.Id);
 
             if (itemInDb != null)
             {
@@ -47,7 +46,7 @@ namespace comments_api.Controllers
 
             if (comment.ParentId != null)
             {
-                var parentComment = FindCommentById(comment, comment.ParentId.Value);
+                var parentComment = FindCommentById(comment.ParentId.Value);
                 if (parentComment != null)
                 {
                     parentComment.Replies.Add(comment);
@@ -71,15 +70,18 @@ namespace comments_api.Controllers
         }
 
         [HttpPost]
-        public JsonResult Edit([FromBody]Comment comment)
+        public JsonResult Edit([FromBody] Comment comment)
         {
-            var itemInDb = _context.Comments.FirstOrDefault(c => c.Id == comment.Id);
+            var itemInDb = FindCommentById(comment.Id);
 
-            if (itemInDb == null) return new JsonResult(BadRequest("Item doesn't exist."));
+            if (itemInDb == null)
+            {
+                return new JsonResult(BadRequest("Item doesn't exist."));
+            }
 
             itemInDb.Content = comment.Content;
             itemInDb.CreatedAt = DateTime.Now;
-            
+
             _context.SaveChanges();
 
             return new JsonResult(new
@@ -91,18 +93,11 @@ namespace comments_api.Controllers
         [HttpGet]
         public JsonResult Get(int id)
         {
-            var rootComments = _context.Comments
-                .Include(c => c.Replies)
-                .Where(c => c.ParentId == null)
-                .ToList();
+            var foundComment = FindCommentById(id);
 
-            foreach (var comment in rootComments)
+            if (foundComment != null)
             {
-                var foundComment = FindCommentById(comment, id);
-                if (foundComment != null)
-                {
-                    return new JsonResult(Ok(foundComment));
-                }
+                return new JsonResult(Ok(foundComment));
             }
 
             return new JsonResult(NotFound());
@@ -111,9 +106,12 @@ namespace comments_api.Controllers
         [HttpDelete]
         public JsonResult Delete(int id)
         {
-            var itemInDb = _context.Comments.FirstOrDefault(c => c.Id == id);
+            var itemInDb = FindCommentById(id);
 
-            if (itemInDb == null) return new JsonResult(NotFound());
+            if (itemInDb == null)
+            {
+                return new JsonResult(NotFound());
+            }
 
             _context.Comments.Remove(itemInDb);
             _context.SaveChanges();
@@ -122,14 +120,16 @@ namespace comments_api.Controllers
         }
 
         [HttpGet("/GetAll")]
-        public JsonResult GetAll() 
+        public JsonResult GetAll()
         {
-            var result = _context.Comments.Where(c => c.ParentId == null).Include(c => c.Replies).ToList();
-
+            var comments = _context.Comments.ToList().Where(c=>c.ParentId==null);
+            
             return new JsonResult(new
             {
-                Data = result
+                Data = comments
             });
         }
+
+
     }
 }
