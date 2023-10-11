@@ -8,6 +8,7 @@ namespace comments_api.Models
         public string Content { get; set; }
         public DateTime CreatedAt { get; set; }
         public int Score { get; set; }
+        public int Upvoted { get; set; }
         public List<Comment> Replies { get; set; } = new List<Comment>();
         public virtual int? ParentId { get; set; }
 
