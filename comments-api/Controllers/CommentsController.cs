@@ -79,10 +79,16 @@ namespace comments_api.Controllers
                 return new JsonResult(BadRequest("Item doesn't exist."));
             }
 
-            itemInDb.Content = comment.Content;
-            itemInDb.Score = comment.Score;
-            itemInDb.Upvoted = comment.Upvoted;
-            itemInDb.CreatedAt = DateTime.Now;
+            if (itemInDb.Content == comment.Content)
+            { 
+                itemInDb.Upvoted = comment.Upvoted;
+                itemInDb.Score = comment.Score;
+            }
+            else
+            {
+                itemInDb.CreatedAt = DateTime.Now;
+                    itemInDb.Content = comment.Content;
+            }
 
             _context.SaveChanges();
 
