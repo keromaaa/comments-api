@@ -1,6 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore.Query;
-
-namespace comments_api.Models
+﻿namespace comments_api.Models
 {
     public class Comment
     {

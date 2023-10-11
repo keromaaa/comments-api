@@ -80,6 +80,8 @@ namespace comments_api.Controllers
             }
 
             itemInDb.Content = comment.Content;
+            itemInDb.Score = comment.Score;
+            itemInDb.Upvoted = comment.Upvoted;
             itemInDb.CreatedAt = DateTime.Now;
 
             _context.SaveChanges();
