@@ -1,10 +1,11 @@
 using comments_api.Data;
+using Microsoft.Extensions.Configuration;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddDbContext<ApiContext>(options => options.UseInMemoryDatabase("CommentsDb"));
+builder.Services.AddDbContext<ApiContext>(options => options.UseSqlite(builder.Configuration.GetConnectionString("WebApiDatabase")));
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle

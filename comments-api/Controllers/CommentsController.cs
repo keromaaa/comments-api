@@ -87,7 +87,7 @@ namespace comments_api.Controllers
             else
             {
                 itemInDb.CreatedAt = DateTime.Now;
-                    itemInDb.Content = comment.Content;
+                itemInDb.Content = comment.Content;
             }
 
             _context.SaveChanges();
