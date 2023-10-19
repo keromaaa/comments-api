@@ -12,5 +12,10 @@
         public List<Comment> Replies { get; set; } = new List<Comment>();
         public virtual int? ParentId { get; set; }
 
+        public Comment()
+        {
+            CreatedAt = DateTime.UtcNow;
+        }
+
     }
 }

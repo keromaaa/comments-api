@@ -86,7 +86,7 @@ namespace comments_api.Controllers
             }
             else
             {
-                itemInDb.CreatedAt = DateTime.Now;
+                itemInDb.CreatedAt = DateTime.UtcNow;
                 itemInDb.Content = comment.Content;
             }
 
